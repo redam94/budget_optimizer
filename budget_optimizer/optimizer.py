@@ -5,12 +5,12 @@
 # %% auto 0
 __all__ = ['Optimizer']
 
-# %% ../nbs/00_optimizer.ipynb 3
+# %% ../nbs/00_optimizer.ipynb 5
 import pyswarms as ps
 import numpy as np
 import pandas as pd
 
-# %% ../nbs/00_optimizer.ipynb 4
+# %% ../nbs/00_optimizer.ipynb 6
 class Optimizer:
     
     def __init__(self, model):

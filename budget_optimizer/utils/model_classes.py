@@ -5,7 +5,7 @@
 # %% auto 0
 __all__ = ['Budget', 'BaseBudgetModel']
 
-# %% ../../nbs/utils/00_model_classes.ipynb 3
+# %% ../../nbs/utils/00_model_classes.ipynb 4
 from abc import ABC, abstractmethod
 from pathlib import Path
 from collections.abc import Sequence
@@ -17,7 +17,7 @@ from typing import (
 import xarray as xr
 import types
 
-# %% ../../nbs/utils/00_model_classes.ipynb 4
+# %% ../../nbs/utils/00_model_classes.ipynb 5
 class _Model(ABC):
   
   @abstractmethod
@@ -31,10 +31,10 @@ class _Model(ABC):
   def __repr__(self) -> str:
     return f"Model"
 
-# %% ../../nbs/utils/00_model_classes.ipynb 5
+# %% ../../nbs/utils/00_model_classes.ipynb 6
 Budget = Union[Dict[str, float], xr.Dataset]
 
-# %% ../../nbs/utils/00_model_classes.ipynb 6
+# %% ../../nbs/utils/00_model_classes.ipynb 7
 class BaseBudgetModel(_Model):
     """
     Abstract class for all models
