@@ -1,0 +1,8 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_optimizer.ipynb
+      - section: utils
+        contents:
+          - utils/00_model_classes.ipynb

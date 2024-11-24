@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "budget_optimizer"
+  site-url: "https://redam94.github.io/budget_optimizer"
+  description: "Budget optimizer for nested MMMs"
+  repo-branch: main
+  repo-url: "https://github.com/redam94/budget_optimizer"
