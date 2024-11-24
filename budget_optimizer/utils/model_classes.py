@@ -39,7 +39,7 @@ class BaseBudgetModel(_Model):
     """
     Abstract class for all models
     """
-    _FUNCTION_MODULE_NAME = "functions.py"
+    _FUNCTION_MODULE_NAME = "model_config.py"
     
     def __init__(
       self, 
