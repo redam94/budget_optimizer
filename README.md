@@ -67,12 +67,6 @@ Install latest from the GitHub
 $ pip install git+https://github.com/redam94/budget_optimizer.git
 ```
 
-or from [conda](https://anaconda.org/redam94/budget_optimizer)
-
-``` sh
-$ conda install -c redam94 budget_optimizer
-```
-
 or from [pypi](https://pypi.org/project/budget_optimizer/)
 
 ``` sh
@@ -95,11 +89,11 @@ can find package manager specific guidelines on
 import xarray as xr
 from pathlib import Path
 import numpy as np
-from budget_optimizer.utils.model_classes import _Model, Budget
+from budget_optimizer.utils.model_helpers import AbstractModel, BudgetType
 
-INITIAL_BUDGET: Budget = dict(a=2., b=3.)
+INITIAL_BUDGET: BudgetType = dict(a=2., b=3.)
 
-class SimpleModel(_Model):
+class SimpleModel(AbstractModel):
   """
   Simple model that just adds the two variables a and b.
   This can be as complex as you want as long as it has a predict method
@@ -120,13 +114,13 @@ class SimpleModel(_Model):
   def contributions(self, x: xr.Dataset) -> xr.Dataset:
     return x
 
-def budget_to_data(budget: Budget, model: _Model) -> xr.Dataset:
+def budget_to_data(budget: BudgetType, model: AbstractModel) -> xr.Dataset:
     data = model.data.copy()
     for key, value in budget.items():
         data[key] = value/INITIAL_BUDGET[key]*data[key]
     return data
   
-def model_loader(path: Path) -> _Model:
+def model_loader(path: Path) -> AbstractModel:
     rng = np.random.default_rng(42)
     data_a = xr.DataArray(np.exp(1+rng.normal(0, .1, size=156)), dims='time', coords={"time": np.arange(1, 157)})
     data_b = xr.DataArray(np.exp(2+rng.normal(0, .1, size=156)), dims='time', coords={"time": np.arange(1, 157)})

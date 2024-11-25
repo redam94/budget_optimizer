@@ -10,9 +10,64 @@ import pyswarms as ps
 import numpy as np
 import pandas as pd
 
+from .utils.model_classes import BaseBudgetModel
+from budget_optimizer.utils.model_helpers import (
+  load_module,
+  load_yaml,
+  BudgetType, 
+  AbstractModel
+)
+
+from pathlib import Path
+
 # %% ../nbs/00_optimizer.ipynb 6
 class Optimizer:
+    """Optimizer wrapper for the pyswarms package"""
+    _CONFIG_YAML = 'optimizer_config.yaml'
+    _MODULE_FILE = "optimizer_config.py"
     
-    def __init__(self, model):
-        self.model = model
+    def __init__(
+        self, 
+        model: BaseBudgetModel, # The model to optimize
+        config_path: str|Path # Path to the configuration files
+        ):
+        
+        self.model: AbstractModel = model
+        self._config_path: Path = Path(config_path) if isinstance(config_path, str) else config_path
+        self._optimal_budget: BudgetType = None
+        self._optimal_prediction: xr.DataArray = None
+        self._optimal_contribution: xr.Dataset = None
+        self._config = self._load_config()
+        self._loss_fn = self._load_loss_fn()
+        
+    def _load_config(self):
+        config = load_yaml(self._config_path / self._CONFIG_YAML)
+        return config
     
+    def reload_config(self):
+        self._config = self._load_config()
+        return self
+    
+    def _load_loss_fn(self):
+        """Load the loss function from the config file"""
+        module = load_module(self._MODULE_FILE.replace(".py", ""), self._config_path / self._MODULE_FILE)
+        return module.loss_fn
+    
+    def _optimizer_array_to_budget(self, array: np.ndarray) -> BudgetType:
+        """Convert the optimizer array to a budget"""
+        initial_budget: BudgetType = self._config['initial_budget']
+        budget: BudgetType = {}
+        
+        for i, key in enumerate(initial_budget.keys()):
+            budget[key] = array[i]
+        return budget
+    
+    
+    def optimize(self, n_particles: int = 10, n_iterations: int = 100):
+        """Optimize the model"""
+        optimizer = ps.single.GlobalBestPSO(n_particles=n_particles, dimensions=self._config['dimensions'])
+        optimizer.optimize(self._loss_fn, iters=n_iterations)
+        self._optimal_budget = optimizer.pos_best
+        self._optimal_prediction = self.model.predict() # The optimizer minimizes the cost, so we need to negate it
+        self._optimal_contribution = self.model.get_contribution(self._optimal_budget)
+        return self

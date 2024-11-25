@@ -6,3 +6,4 @@ website:
       - section: utils
         contents:
           - utils/00_model_classes.ipynb
+          - utils/01_model_helpers.ipynb
