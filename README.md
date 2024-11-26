@@ -181,12 +181,26 @@ minimize.
 ## file: example_files/optimizer_config.py
 import numpy as np
 import xarray as xr
+from budget_optimizer.utils.model_helpers import BudgetType, load_yaml
+from pathlib import Path
+
+# Define the optimizer configuration
+CONFIG = load_yaml(Path(__file__).parent / "optimizer_config.yaml")
 
 def loss_fn(x: xr.DataArray, start_date=None, end_date=None, dim="Period"):
+    # x is a numpy array of shape (n_params,)
     # start_date and end_date are datetime objects
     # return a scalar loss
     x = x.sel({dim: slice(start_date, end_date)})
     return -np.sum(x)
+
+def optimizer_array_to_budget(array: np.ndarray) -> BudgetType:
+    initial_budget: BudgetType = CONFIG['initial_budget']
+    budget: BudgetType = {}
+        
+    for i, key in enumerate(initial_budget.keys()):
+        budget[key] = array[i]
+    return budget
 ```
 
 An additional file will be used define the kwargs for the loss function
@@ -224,7 +238,7 @@ fitted_optimizer = optimizer.optimize(init_budget, bounds, constraints)
 fitted_optimizer.optimal_budget
 ```
 
-    {'a': np.float64(1.8000836826100175), 'b': np.float64(3.1999163173899827)}
+    {'a': np.float64(1.7002367944276708), 'b': np.float64(3.2997632055723294)}
 
 <div id="fig-revenue-performance-optimized">
 

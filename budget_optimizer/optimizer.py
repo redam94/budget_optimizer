@@ -40,6 +40,7 @@ class Optimizer:
         self.sol = None
         self._config = self._load_config()
         self._loss_fn = self._load_loss_fn()
+        self._optimizer_array_to_budget = self._load_optimizer_array_to_budget()
         
     def _load_config(self):
         config = load_yaml(self._config_path / self._CONFIG_YAML)
@@ -54,14 +55,10 @@ class Optimizer:
         module = load_module(self._MODULE_FILE.replace(".py", ""), self._config_path / self._MODULE_FILE)
         return module.loss_fn
     
-    def _optimizer_array_to_budget(self, array: np.ndarray) -> BudgetType:
+    def _load_optimizer_array_to_budget(self):
         """Convert the optimizer array to a budget"""
-        initial_budget: BudgetType = self._config['initial_budget']
-        budget: BudgetType = {}
-        
-        for i, key in enumerate(initial_budget.keys()):
-            budget[key] = array[i]
-        return budget
+        module = load_module(self._MODULE_FILE.replace(".py", ""), self._config_path / self._MODULE_FILE)
+        return module.optimizer_array_to_budget
     
     def _optimizer_fn(self, x: np.ndarray):
         """Optimizer step"""
