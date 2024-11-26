@@ -84,6 +84,12 @@ can find package manager specific guidelines on
 
 ## How to use
 
+#### Step 1: Create a model_config.py file
+
+This contains the functions to load the model and convert the budget
+into model inputs. This allows models to be updated without changing the
+code in the budget_optimizer library.
+
 ``` python
 ## file: example_files/model_1/model_config.py
 import xarray as xr
@@ -108,7 +114,7 @@ class SimpleModel(AbstractModel):
     
   def predict(self, x: xr.Dataset) -> xr.DataArray:
     x = x.copy()
-    x["prediction"] = x["a"] + x["b"]
+    x["prediction"] = np.exp(1 + .2*(x["a"]**2/(x["a"]**2 + np.exp(1)**2)) + .25*(x["b"]**4/(x["b"]**4 + np.exp(2)**4)))
     return x["prediction"]
   
   def contributions(self, x: xr.Dataset) -> xr.Dataset:
@@ -122,10 +128,16 @@ def budget_to_data(budget: BudgetType, model: AbstractModel) -> xr.Dataset:
   
 def model_loader(path: Path) -> AbstractModel:
     rng = np.random.default_rng(42)
-    data_a = xr.DataArray(np.exp(1+rng.normal(0, .1, size=156)), dims='time', coords={"time": np.arange(1, 157)})
-    data_b = xr.DataArray(np.exp(2+rng.normal(0, .1, size=156)), dims='time', coords={"time": np.arange(1, 157)})
+    data_a = xr.DataArray(np.exp(1+rng.normal(0, .4, size=156)), dims='time', coords={"time": np.arange(1, 157)})
+    data_b = xr.DataArray(np.exp(2+rng.normal(0, .2, size=156)), dims='time', coords={"time": np.arange(1, 157)})
     return SimpleModel(data = xr.Dataset({"a": data_a, "b": data_b}))
 ```
+
+#### Step 2: Create a budget model
+
+This is a class that wraps the model and defines how the budget is
+allocated to the model inputs. It also tracks model names and kpis for
+future use.
 
 ``` python
 class RevenueModel(BaseBudgetModel):
@@ -133,16 +145,21 @@ class RevenueModel(BaseBudgetModel):
         super().__init__(model_name, model_kpi, model_path)
 ```
 
+Initialize the model with the path to the model artifacts, model name,
+and kpi name.
+
 ``` python
 MODEL_NAME = "Revenue Model"
 MODEL_KPI = "Revenue"
 MODEL_PATH = "../example_files/model_1"
 model = RevenueModel(MODEL_NAME, MODEL_KPI, MODEL_PATH)
-budget_1 = dict(a=1, b=2)
-budget_2 = dict(a=2, b=1)
+budget_1 = dict(a=2, b=3)
+budget_2 = dict(a=2.3, b=2.7)
 outcome_budget_1 = model.predict(budget_1)
 outcome_budget_2 = model.predict(budget_2)
 ```
+
+We can now use the model to predict the kpi for a given budget.
 
 <div id="fig-revenue-performance">
 
@@ -150,5 +167,70 @@ outcome_budget_2 = model.predict(budget_2)
 
 
 Figure 1: Revenue Performance of Budget 1 and Budget 2
+
+</div>
+
+#### Step 3: Create the Optimizer Config Files
+
+This is a file that defines the loss function for the optimization
+problem. It should contain a function named `loss_fn` that takes the
+predriction from the model and kwargs and returns a scalar loss to
+minimize.
+
+``` python
+## file: example_files/optimizer_config.py
+import numpy as np
+import xarray as xr
+
+def loss_fn(x: xr.DataArray, start_date=None, end_date=None, dim="Period"):
+    # start_date and end_date are datetime objects
+    # return a scalar loss
+    x = x.sel({dim: slice(start_date, end_date)})
+    return -np.sum(x)
+```
+
+An additional file will be used define the kwargs for the loss function
+and the initial budget.
+
+``` yaml
+initial_budget:
+  a: 2
+  b: 3
+loss_fn_kwargs:
+  start_date: null
+  end_date: null
+  dim: "time"
+```
+
+#### Step 4: Create the Optimizer
+
+Instantiate the optimizer and define the initial position, bounds and
+constraints for the optimization problem.
+
+``` python
+init_budget = np.array([2, 3])
+bounds = [(1.7, 2.3), (2.7, 3.3)]
+constraints = opt.LinearConstraint([[1, 1]], [5], [5])
+optimizer = Optimizer(model, "../example_files")
+```
+
+#### Step 5: Run the optimization
+
+``` python
+fitted_optimizer = optimizer.optimize(init_budget, bounds, constraints)
+```
+
+``` python
+fitted_optimizer.optimal_budget
+```
+
+    {'a': np.float64(1.8000836826100175), 'b': np.float64(3.1999163173899827)}
+
+<div id="fig-revenue-performance-optimized">
+
+![](index_files/figure-commonmark/fig-revenue-performance-optimized-output-1.png)
+
+
+Figure 2: Revenue Performance of Budget 1 and Budget 2
 
 </div>

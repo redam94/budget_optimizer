@@ -32,7 +32,7 @@ class Optimizer:
         config_path: str|Path # Path to the configuration files
         ):
         
-        self.model: AbstractModel = model
+        self.model: BaseBudgetModel = model
         self._config_path: Path = Path(config_path) if isinstance(config_path, str) else config_path
         self.optimal_budget: BudgetType = None
         self.optimal_prediction: xr.DataArray = None
@@ -70,8 +70,12 @@ class Optimizer:
         loss = self._loss_fn(prediction, **self._config['loss_fn_kwargs'])
         return loss
     
-
-    def optimize(self, init_pos: np.ndarray, bounds: list[tuple[float, float]], constraints: None|opt.LinearConstraint = None):
+    def optimize(
+        self, 
+        init_pos: np.ndarray, # Initial position of the optimizer
+        bounds: list[tuple[float, float]], # Bounds for the optimizer
+        constraints: None|opt.LinearConstraint = None # Constraints for the optimizer
+        ):
         """Optimize the model"""
         import warnings
         warnings.filterwarnings("ignore")

@@ -1,8 +1,7 @@
-dimensions: 2
 initial_budget:
-  a: 0.4
-  b: 0.1
+  a: 2
+  b: 3
 loss_fn_kwargs:
-  start_date: 5
-  end_date: 10
+  start_date: null
+  end_date: null
   dim: "time"

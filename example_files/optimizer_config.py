@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 
-def loss_fn(x: xr.DataArray, start_date=5, end_date=100, dim="Period"):
+def loss_fn(x: xr.DataArray, start_date=None, end_date=None, dim="Period"):
     # x is a numpy array of shape (n_params,)
     # start_date and end_date are datetime objects
     # return a scalar loss
