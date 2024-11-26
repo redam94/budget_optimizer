@@ -32,11 +32,9 @@ def load_module(
 def load_yaml(
   file_path: Path, # The path to the YAML file
 ) -> Dict[str, Union[list[str], str]]: # The loaded module
-    "Load a module from a file path."
-    spec = import_utils.spec_from_file_location(module_name, module_path)
-    module = import_utils.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    "Load a yaml file."
+    with open(file_path, 'r') as file:
+        return yaml.safe_load(file)
 
 # %% ../../nbs/utils/01_model_helpers.ipynb 8
 class AbstractModel(ABC):

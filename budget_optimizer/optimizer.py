@@ -6,9 +6,9 @@
 __all__ = ['Optimizer']
 
 # %% ../nbs/00_optimizer.ipynb 5
-import pyswarms as ps
 import numpy as np
 import pandas as pd
+import scipy.optimize as opt
 
 from .utils.model_classes import BaseBudgetModel
 from budget_optimizer.utils.model_helpers import (
@@ -34,9 +34,10 @@ class Optimizer:
         
         self.model: AbstractModel = model
         self._config_path: Path = Path(config_path) if isinstance(config_path, str) else config_path
-        self._optimal_budget: BudgetType = None
-        self._optimal_prediction: xr.DataArray = None
-        self._optimal_contribution: xr.Dataset = None
+        self.optimal_budget: BudgetType = None
+        self.optimal_prediction: xr.DataArray = None
+        self.optimal_contribution: xr.Dataset = None
+        self.sol = None
         self._config = self._load_config()
         self._loss_fn = self._load_loss_fn()
         
@@ -62,12 +63,28 @@ class Optimizer:
             budget[key] = array[i]
         return budget
     
+    def _optimizer_fn(self, x: np.ndarray):
+        """Optimizer step"""
+        budget = self._optimizer_array_to_budget(x)
+        prediction = self.model.predict(budget)
+        loss = self._loss_fn(prediction, **self._config['loss_fn_kwargs'])
+        return loss
     
-    def optimize(self, n_particles: int = 10, n_iterations: int = 100):
+
+    def optimize(self, init_pos: np.ndarray, bounds: list[tuple[float, float]], constraints: None|opt.LinearConstraint = None):
         """Optimize the model"""
-        optimizer = ps.single.GlobalBestPSO(n_particles=n_particles, dimensions=self._config['dimensions'])
-        optimizer.optimize(self._loss_fn, iters=n_iterations)
-        self._optimal_budget = optimizer.pos_best
-        self._optimal_prediction = self.model.predict() # The optimizer minimizes the cost, so we need to negate it
-        self._optimal_contribution = self.model.get_contribution(self._optimal_budget)
+        import warnings
+        warnings.filterwarnings("ignore")
+        self.sol = opt.minimize(
+            self._optimizer_fn, init_pos,
+            method='trust-constr', 
+            bounds=bounds, 
+            constraints=constraints
+            )
+        if not self.sol.success:
+            raise Exception(f"Optimization failed: {self.sol.message}")
+        
+        self.optimal_budget = self._optimizer_array_to_budget(self.sol.x)
+        self.optimal_prediction = self.model.predict(self.optimal_budget) # The optimizer minimizes the cost, so we need to negate it
+        self.optimal_contribution = self.model.contributions(self.optimal_budget)
         return self
