@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from budget_optimizer.utils.model_helpers import AbstractModel, BudgetType
 
+
 INITIAL_BUDGET: BudgetType = dict(a=2., b=3.)
 
 class SimpleModel(AbstractModel):

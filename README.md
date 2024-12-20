@@ -91,7 +91,7 @@ into model inputs. This allows models to be updated without changing the
 code in the budget_optimizer library.
 
 ``` python
-## file: example_files/model_1/model_config.py
+## file: example_files/fast_model/model_config.py
 import xarray as xr
 from pathlib import Path
 import numpy as np
@@ -151,7 +151,7 @@ and kpi name.
 ``` python
 MODEL_NAME = "Revenue Model"
 MODEL_KPI = "Revenue"
-MODEL_PATH = "../example_files/model_1"
+MODEL_PATH = "../example_files/fast_model"
 model = RevenueModel(MODEL_NAME, MODEL_KPI, MODEL_PATH)
 budget_1 = dict(a=2, b=3)
 budget_2 = dict(a=2.3, b=2.7)
@@ -164,7 +164,6 @@ We can now use the model to predict the kpi for a given budget.
 <div id="fig-revenue-performance">
 
 ![](index_files/figure-commonmark/fig-revenue-performance-output-1.png)
-
 
 Figure 1: Revenue Performance of Budget 1 and Budget 2
 
@@ -225,13 +224,13 @@ constraints for the optimization problem.
 init_budget = np.array([2, 3])
 bounds = [(1.7, 2.3), (2.7, 3.3)]
 constraints = opt.LinearConstraint([[1, 1]], [5], [5])
-optimizer = Optimizer(model, "../example_files")
+optimizer = ScipyBudgetOptimizer(model, "../example_files")
 ```
 
 #### Step 5: Run the optimization
 
 ``` python
-fitted_optimizer = optimizer.optimize(init_budget, bounds, constraints)
+fitted_optimizer = optimizer.optimize(bounds, constraints, init_pos=init_budget)
 ```
 
 ``` python
@@ -243,7 +242,6 @@ fitted_optimizer.optimal_budget
 <div id="fig-revenue-performance-optimized">
 
 ![](index_files/figure-commonmark/fig-revenue-performance-optimized-output-1.png)
-
 
 Figure 2: Revenue Performance of Budget 1 and Budget 2
 
