@@ -183,6 +183,6 @@ class OptunaBudgetOptimizer(BaseOptimizer):
             n_jobs=n_jobs)
         
         self.sol = self.study.best_trial
-        self.optimal_budget = self._optimizer_array_to_budget(list(self.sol.params.values()))
+        self.optimal_budget = self.sol.params
         self.optimal_prediction = self.model.predict(self.optimal_budget)
         
