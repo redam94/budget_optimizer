@@ -109,6 +109,8 @@ class ScipyBudgetOptimizer(BaseOptimizer):
 
 # %% ../nbs/00_optimizer.ipynb 15
 #| echo: false
+#| echo: false
+#| echo: false
 from typing import Literal
 
 # %% ../nbs/00_optimizer.ipynb 16

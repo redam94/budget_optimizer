@@ -7,3 +7,4 @@ website:
         contents:
           - utils/00_model_classes.ipynb
           - utils/01_model_helpers.ipynb
+          - utils/02_search_space_helpers.ipynb
