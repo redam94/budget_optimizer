@@ -19,7 +19,7 @@ from budget_optimizer.utils.model_helpers import (
   BudgetType, 
   AbstractModel
 )
-
+from .utils.search_space_helper import ConstrainedSearchSpace
 from pathlib import Path
 from abc import ABC, abstractmethod
 
@@ -108,7 +108,6 @@ class ScipyBudgetOptimizer(BaseOptimizer):
         return self
 
 # %% ../nbs/00_optimizer.ipynb 15
-#| echo: false
 from typing import Literal
 
 # %% ../nbs/00_optimizer.ipynb 16
@@ -132,44 +131,28 @@ class OptunaBudgetOptimizer(BaseOptimizer):
         self._direction = direction
         self.__tol = tol
         self.__percent_out_tolerance = percent_out_tolerance
-        self.__sampler = sampler(constraints_func=self._constraints, **sampler_kwargs)
+        self.__sampler = sampler(**sampler_kwargs)
         self.__pruner = pruner(**pruner_kwargs) if not pruner is None else None
         
         
-    def _constraints(self, trial):
-        return trial.user_attrs["constraint"]
+    #def _constraints(self, trial):
+    #    return trial.user_attrs["constraint"]
     
-    def _optimizer_fn(self, bounds, constraints):
-        def _opt_fn(trial):
-            x = np.array([trial.suggest_float(name, *bound, step=.0001) for name, bound in bounds.items()])
-            budget = self._optimizer_array_to_budget(x)
-            total_budget = sum(v for v in budget.values())
-            if constraints is None:
-                trial.set_user_attr("constraint", (-1,))
-            else:
-                less_than_upper = ((total_budget - constraints[1])/constraints[1]) <= self.__tol
-                greater_than_lower = ((total_budget - constraints[0])/constraints[0]) >= -self.__tol
-                
-                trial.set_user_attr("constraint", (-1,) if (less_than_upper and greater_than_lower) else (1,))
-               
-                trial.set_user_attr("test", (f"{total_budget:.2f}", constraints))
-                trial.set_user_attr(
-                    "tol", 
-                    (
-                        f"{((total_budget - constraints[1])/constraints[1]):.2%}",
-                        f"{((total_budget - constraints[0])/constraints[0]):.2%}"
-                    ))
-                trial.set_user_attr("less or greater", (int(less_than_upper), int(greater_than_lower)))
-                if (not (less_than_upper and greater_than_lower)) and np.random.uniform(0, 1) > self.__percent_out_tolerance:
-                    raise optuna.exceptions.TrialPruned()
-            trial.set_user_attr("budget", budget)
-            prediction = self.model.predict(budget)
-            
-            
-            loss = -self._loss_fn(prediction, **self._config['loss_fn_kwargs'])
-            return loss
+    
+    def _opt_fn(self, trial):
+        budget = self.search_space(trial)
+        #budget = self._optimizer_array_to_budget([budget[name] for name in ])
+        total_budget = sum(v for v in budget.values())
         
-        return _opt_fn
+        trial.set_user_attr("budget", budget)
+        trial.set_user_attr("total_budget", total_budget)
+        prediction = self.model.predict(budget)
+        
+        
+        loss = -self._loss_fn(prediction, **self._config['loss_fn_kwargs'])
+        return loss
+        
+        
 
     def optimize(
         self, 
@@ -190,13 +173,16 @@ class OptunaBudgetOptimizer(BaseOptimizer):
             sampler=self.__sampler,
             pruner=self.__pruner)
         self.study.set_metric_names([self.objective_name])
+        if constraints is None:
+            constraints = (-np.inf, np.inf)
+        self.search_space = ConstrainedSearchSpace(bounds, constraints)
         self.study.optimize(
-            self._optimizer_fn(bounds, constraints), 
+            self._opt_fn, 
             n_trials=n_trials, 
             timeout=timeout,
             n_jobs=n_jobs)
         
         self.sol = self.study.best_trial
-        self.optimal_budget = self._optimizer_array_to_budget(list(self.sol.params.values()))
+        self.optimal_budget = self.sol.params
         self.optimal_prediction = self.model.predict(self.optimal_budget)
         
