@@ -117,6 +117,7 @@ class OptunaBudgetOptimizer(BaseOptimizer):
         model: BaseBudgetModel, # The model to optimize
         config_path: str|Path, # Path to the configuration files
         objective_name: str = "loss", # Name of the objective
+        storage: str = "sqlite:///db.sqlite3", # Storage for the optimization defaults to local sqlite
         direction: Literal["maximize", "minimize"] = "maximize", # Direction of the optimization
         sampler: optuna.samplers.BaseSampler = optuna.samplers.TPESampler, # Sampler for the optimization
         pruner: optuna.pruners.BasePruner|None = None, # Pruner for the optimization
@@ -133,7 +134,7 @@ class OptunaBudgetOptimizer(BaseOptimizer):
         self.__percent_out_tolerance = percent_out_tolerance
         self.__sampler = sampler(**sampler_kwargs)
         self.__pruner = pruner(**pruner_kwargs) if not pruner is None else None
-        
+        self.__storage = storage
         
     #def _constraints(self, trial):
     #    return trial.user_attrs["constraint"]
@@ -158,20 +159,23 @@ class OptunaBudgetOptimizer(BaseOptimizer):
         self, 
         bounds: dict[str, tuple[float, float]], # Bounds for the optimizer
         constraints: None|tuple = None, # Constraints for the optimizer
-        timeout: int = 60,
-        n_trials: int = 100,
-        storage: str|None = "sqlite:///db.sqlite3",
-        study_name: str = "optimizer",
-        n_jobs: int = 1
+        timeout: int = 60, # Timeout for the optimization
+        n_trials: int = 100, # Max number of trials to run
+        study_name: str = "optimizer", # Name of the study
+        load_if_exists: bool = False, # Load the study if it exists
+        n_jobs: int = 1 # Number of jobs to run in parallel
     ):
         """Optimize the model"""
             
         self.study = optuna.create_study(
-            storage=storage,  # Specify the storage URL here.
+            storage=self.__storage,  # Specify the storage URL here.
             study_name=study_name,
             direction=self._direction,
             sampler=self.__sampler,
-            pruner=self.__pruner)
+            pruner=self.__pruner,
+            load_if_exists=load_if_exists
+            )
+        
         self.study.set_metric_names([self.objective_name])
         if constraints is None:
             constraints = (-np.inf, np.inf)

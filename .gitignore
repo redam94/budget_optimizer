@@ -153,3 +153,5 @@ checklink/cookies.txt
 
 #DB files
 *.sqlite3
+
+tests/
